@@ -60,15 +60,59 @@ Two fundamentally different extraction strategies were tested across the 43 expe
 
 **One-step extraction** — adopted in later experiments and used in the final framework. Entities and relationships are identified together in a single API call per chunk. Once supported by proper preprocessing (chunking and coreference resolution) and well-designed prompts, this simpler approach outperformed the multi-step design in both precision and recall, and is significantly easier to maintain and extend.
 
-### Prompt Engineering: An Iterative Research Process
+---
 
-Prompts were a central research variable throughout the project and went through three broad stages of development. These stages are not selectable parameters in the framework — they describe the research journey. The prompts embedded in the framework are the final, most refined version.
+### Coreference Resolution (CR): What It Is and Why It Matters
 
-**Stage 1 — Simple prompts:** basic instructions with no schema, no definitions, and no constraints. These established a baseline but produced noisy, inconsistent outputs.
+Historical narratives rarely repeat full names. A memoir passage might say "He gave me the papers" or "The Fleischers let us stay" — leaving the actual individuals ambiguous or unnamed. Without resolving these references, an LLM will either miss relationships entirely (false negatives) or attribute actions to the wrong person (false positives).
 
-**Stage 2 — Refined prompts:** introduced explicit definitions for all 9 relationship types, inclusion/exclusion rules to focus only on survival-relevant interactions, and a structured JSON output schema. This made outputs consistent and aligned them with the ground truth format.
+Coreference Resolution (CR) was introduced as a dedicated preprocessing step before relationship extraction. Its role is to replace all ambiguous references in each text chunk with explicit entity names, so the extraction model works with clear, unambiguous text.
 
-**Stage 3 — Advanced prompts (current):** built on the refined stage by adding detailed contextual clarifications for borderline cases — for example, distinguishing between a routine job offer and employment arranged specifically as cover for someone living underground. These nuances were critical for capturing historically meaningful relationships without over-generating false positives. Advanced prompts reduced false positives by over 80% compared to early configurations while maintaining recall.
+CR was implemented in two stages:
+
+**Stage 1 — Pronoun resolution:** personal pronouns (he, she, they, we, etc.) are replaced with the actual names of the people they refer to. For example, "He gave me papers" becomes "Walter Neuman (he) gave me papers." The original pronoun is preserved inline, with the resolved name added immediately after in brackets.
+
+**Stage 2 — Family and collective reference resolution:** group references like "the Fleischers" or "the Wendlands" are expanded to the known individual members of that household — specifically the adult heads, e.g. "Walter Fleischer, Agnes Fleischer." This was critical because many helping acts in the memoir are attributed to families rather than named individuals, and the ground truth tracks relationships at the individual level.
+
+#### CR Prompts
+
+CR uses two prompts per chunk, which was the same two-prompt design used throughout the project:
+
+**System prompt** — contains all rules and structural instructions that remain constant across every chunk. For CR, this includes: always preserve the original sentence structure and punctuation; insert resolved names immediately after the reference in square brackets; for pronoun resolution, keep the pronoun and add the name (e.g. `they [Walter Neuman, Rita Neuman]`); for family references, expand to the known adult members of that household if their names appear in the text, or leave the family name bracketed unchanged if they do not; never paraphrase or rewrite the original text.
+
+**User prompt** — constructed dynamically for each chunk. It contains the current chunk as the main text to be processed, and optionally one or more preceding chunks as a reference context section (see Context Window below). The model is explicitly instructed to perform resolution only on the main text, using the context section for reference only without modifying it.
+
+#### Context Window
+
+Even with chunking, a pronoun in one chunk might refer to an entity introduced in a previous chunk. To address this, the CR step supports a configurable **context window** — a number of preceding chunks included in the user prompt as reference material alongside the current chunk being processed.
+
+| CW setting | What is included | Observed effect |
+|---|---|---|
+| 0 | No previous context (baseline) | Fast, but frequent cross-boundary omissions; model unaware of entities from earlier chunks |
+| **1** | 1 preceding chunk as context | Clear improvement: recall ↑ ~12–15%, precision stable — **best overall balance** |
+| ≥ 2 | 2 or more preceding chunks | Excess context caused the model to lose focus; precision dropped; more false negatives introduced |
+
+The context window of 1 is the optimal setting and the default in the framework. Adding more context beyond one chunk did not help — it created noise rather than clarity.
+
+---
+
+### Relationship Extraction Prompts
+
+The extraction step (Stage 2) also uses the same two-prompt structure:
+
+**System prompt** — the rulebook for the extraction task. It defines all 9 relationship types with detailed descriptions, specifies inclusion and exclusion rules (only survival-critical acts of help count — not casual conversation or routine daily interactions), handles edge cases such as bureaucratic actions that became life-saving in context (e.g. issuing identity papers to a person living underground), defines the output schema precisely (JSON with `entity1`, `entity2`, `Form of help`, `evidence` fields), and explains how to handle entities expressed as pronouns or family names in the resolved text.
+
+**User prompt** — short and focused. It provides the resolved chunk text and asks the model to extract all help-related relationships from it according to the system rules. Keeping the user prompt minimal and consistent across all chunks was intentional — it separates the stable rulebook (system) from the variable content (user), making outputs more predictable.
+
+#### Prompt Engineering: An Iterative Research Process
+
+Prompts were a central research variable and went through three broad stages of development. These stages are not selectable parameters in the framework — they describe the research journey. The prompts embedded in the framework are the final, most refined version.
+
+**Stage 1 — Simple prompts:** basic instructions with no schema, no definitions, and no constraints. Established a baseline but produced noisy, inconsistent outputs.
+
+**Stage 2 — Refined prompts:** introduced explicit definitions for all 9 relationship types, inclusion/exclusion rules focusing only on survival-relevant interactions, and a structured JSON output schema. Made outputs consistent and aligned them with the ground truth format.
+
+**Stage 3 — Advanced prompts (current):** built on the refined stage by adding detailed contextual clarifications for borderline cases — for example, distinguishing between a routine job offer and employment arranged specifically as cover for someone living underground, or recognising that issuing an ID card to a persecuted person is an act of survival support even if the official acted routinely. Advanced prompts reduced false positives by over 80% compared to early configurations while maintaining recall.
 
 ---
 
