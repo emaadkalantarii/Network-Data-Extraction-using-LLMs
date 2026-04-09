@@ -19,7 +19,7 @@ The core challenge is bridging **Digital History** and **Computer Science**: rec
 
 ## The Pipeline
 
-The framework implements a modular, end-to-end NLP pipeline:
+The framework in this repository is the **final, optimized version** that emerged after 43 experimental configurations. It implements a modular, end-to-end NLP pipeline:
 
 ```
 Raw Text
@@ -36,35 +36,59 @@ Raw Text
    │                         Uses a context window of 1 preceding chunk for cross-boundary references
    ▼
 4. Relationship Extraction ← LLM identifies entity pairs + relationship type + evidence
-   │  (Stage 2)               Output: structured JSON
+   │  (Stage 2)               Output: structured JSON per chunk
    ▼
 5. Output: NER_results.json  ← all relationships across all chunks, merged per run
 ```
 
-Both Stage 1 (CR) and Stage 2 (Extraction) support independent model selection from:
-- **OpenAI o3** reasoning model (best overall — used for both stages in the optimal configuration)
-- **GPT-4.1** (highest recall, but noisy — more false positives)
-- **GPT-5** (tested; did not outperform o3)
+Both Stage 1 (Coreference Resolution) and Stage 2 (Relationship Extraction) support independent model selection from:
+- **OpenAI o3** reasoning model — best overall, used for both stages in the optimal configuration
+- **GPT-4.1** — highest recall but introduces more false positives
+- **GPT-5** — tested; did not outperform o3
+
+---
+
+## Research Background: How the Pipeline Evolved
+
+The framework you see here is the result of a long iterative process. Understanding how it evolved helps clarify the design decisions embedded in the code.
+
+### Extraction Strategy: One-step vs. Multi-step (NER + RE)
+
+Two fundamentally different extraction strategies were tested across the 43 experimental methods:
+
+**Multi-step (NER + RE)** — used in earlier experiments. The text was first passed through Named Entity Recognition (NER) using five separate prompts, each targeting a different entity type. The resulting entities were consolidated into a list, which was then fed into a separate Relationship Extraction (RE) step. While this approach added structure, it proved fragile: errors in the NER stage (missed or irrelevant entities) propagated directly into the RE stage, resulting in both high false positives and high false negatives. This strategy was eventually abandoned.
+
+**One-step extraction** — adopted in later experiments and used in the final framework. Entities and relationships are identified together in a single API call per chunk. Once supported by proper preprocessing (chunking and coreference resolution) and well-designed prompts, this simpler approach outperformed the multi-step design in both precision and recall, and is significantly easier to maintain and extend.
+
+### Prompt Engineering: An Iterative Research Process
+
+Prompts were a central research variable throughout the project and went through three broad stages of development. These stages are not selectable parameters in the framework — they describe the research journey. The prompts embedded in the framework are the final, most refined version.
+
+**Stage 1 — Simple prompts:** basic instructions with no schema, no definitions, and no constraints. These established a baseline but produced noisy, inconsistent outputs.
+
+**Stage 2 — Refined prompts:** introduced explicit definitions for all 9 relationship types, inclusion/exclusion rules to focus only on survival-relevant interactions, and a structured JSON output schema. This made outputs consistent and aligned them with the ground truth format.
+
+**Stage 3 — Advanced prompts (current):** built on the refined stage by adding detailed contextual clarifications for borderline cases — for example, distinguishing between a routine job offer and employment arranged specifically as cover for someone living underground. These nuances were critical for capturing historically meaningful relationships without over-generating false positives. Advanced prompts reduced false positives by over 80% compared to early configurations while maintaining recall.
 
 ---
 
 ## Key Results
 
-43 experimental configurations were tested, progressively adding preprocessing steps and refining prompts. The best configuration (Method 35) achieved:
+43 experimental configurations were tested across 8 phases, progressively adding preprocessing steps, refining the extraction strategy, and iterating on prompts and model selection. Performance was evaluated against a manually annotated ground-truth dataset of 176 positive relationships across 60 entities.
 
-| Model (CR → Extraction) | Chunk / Overlap | CR Context Window | Prompt | Precision | Recall | F1-score |
-|---|---|---|---|---|---|---|
-| o3 → o3 | 6000 / 600 | 1 | Advanced | **0.906** | **0.785** | **0.841** |
+The best single-run configuration (Method 35) achieved:
+
+| Model (CR → Extraction) | Chunk / Overlap | CR Context Window | Precision | Recall | F1-score |
+|---|---|---|---|---|---|
+| o3 → o3 | 6000 / 600 | 1 | **0.906** | **0.785** | **0.841** |
+
+The chart below shows how Precision, Recall, and F1-score evolved across all 43 methods, demonstrating the cumulative effect of each design refinement:
 
 ![Progression of Metrics Across Methods](assets/fig1_progression_metrics.jpg)
 
-*F1-score improved from ~0.37 (naive single-pass baseline) to 0.841 — a 250%+ improvement.*
+*F1-score improved from ~0.37 (naïve single-pass baseline with no preprocessing) to 0.841 — a 250%+ improvement.*
 
-**Best configuration summary (Method 35):**
-
-![Best Configuration Table](assets/fig2_best_configuration.jpg)
-
-**10-run stability analysis** confirmed reproducibility across three top configurations:
+To verify reproducibility, the three top-performing configurations were each re-run 10 times under identical conditions:
 
 ![Stability Analysis](assets/fig4_stability_analysis.jpg)
 
@@ -74,15 +98,13 @@ Both Stage 1 (CR) and Stage 2 (Extraction) support independent model selection f
 | 39 | o3 → GPT-4.1 | 0.764 | 0.866 | 0.812 |
 | 43 | o3 → GPT-5 | 0.772 | 0.754 | 0.763 |
 
-**Ablation study overview (all 43 methods):**
-
-![Ablation Studies Table](assets/fig3_ablation_studies.jpg)
+Method 35 (o3 for both stages) achieved the highest mean F1 with the lowest variance, confirming it as the most stable and reliable configuration.
 
 ---
 
 ## Relationship Types
 
-The framework extracts 9 predefined relationship categories, focused on survival-critical acts of help:
+The framework extracts 9 predefined relationship categories, all focused on survival-critical acts of help:
 
 1. Providing shelter or protection
 2. Providing medical care
@@ -98,7 +120,7 @@ The framework extracts 9 predefined relationship categories, focused on survival
 
 ## What the Framework Outputs
 
-Each run produces a `NER_results.json` file with the following structure per chunk:
+Each run produces a `NER_results.json` file with extracted relationships per chunk:
 
 ```json
 {
@@ -113,7 +135,7 @@ Each run produces a `NER_results.json` file with the following structure per chu
 }
 ```
 
-The output also includes run metadata: model names, parameters, chunk settings, context window size, timestamps, and the full prompts used — ensuring full reproducibility.
+The output also includes full run metadata: model names and parameters, chunk settings, context window size, timestamps, and the complete prompts used — ensuring every result is fully traceable and reproducible.
 
 ---
 
@@ -157,19 +179,20 @@ CONTEXT_WINDOW = 1                   # Previous chunks used as CR context
 python entity_relationship_extraction.py
 ```
 
-The script is interactive — it will prompt you to review intermediate outputs (cleaned text, chunks, resolved text) before proceeding to the next stage. You can also resume from a saved `resolved_text.txt` checkpoint to skip re-running Stage 1.
+The script is interactive — it will prompt you to review intermediate outputs (cleaned text, chunks, resolved text) before proceeding to the next stage. You can also resume from a saved `resolved_text.txt` checkpoint to skip re-running Stage 1 if you want to re-run extraction with different models or settings.
 
 ---
 
 ## Configuration Options
 
-| Parameter | Tested values | Optimal |
+The following parameters were systematically tested during the research. The optimal values are implemented as defaults in the framework:
+
+| Parameter | Values tested | Optimal |
 |---|---|---|
 | Chunk size / overlap | 2000/200, 4000/400, **6000/600**, 8000/800, 10000/1000 | **6000/600** |
 | Context window (CW) | 0, **1**, 2, 3 | **1** |
-| Stage 1 model | GPT-4.1, GPT-5, **o3** | **o3** |
-| Stage 2 model | GPT-4.1, GPT-5, **o3** | **o3** |
-| Prompt type | Simple, Refined, **Advanced** | **Advanced** |
+| Stage 1 model (CR) | GPT-4.1, GPT-5, **o3** | **o3** |
+| Stage 2 model (Extraction) | GPT-4.1, GPT-5, **o3** | **o3** |
 
 ---
 
