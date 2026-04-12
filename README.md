@@ -2,7 +2,7 @@
 ### Entity and Relationship Extraction from WWII-era Memoirs
 
 > **Master's Thesis — University of Luxembourg (C²DH), October 2025**  
-> Author: Emad Kalantari Khalilabad | Supervisor: Prof. Martin Theobald | Advisor: Ass. Prof. Marten During  
+> Author: Emad Kalantari | Supervisor: Prof. Martin Theobald | Advisor: Ass. Prof. Marten During  
 > *Findings are being prepared for publication in a peer-reviewed journal.*
 
 ---
