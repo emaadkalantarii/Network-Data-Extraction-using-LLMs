@@ -262,7 +262,7 @@ The project was conducted over ~20 months at the [Luxembourg Centre for Contempo
 If you use or reference this work, please cite:
 
 ```
-Kalantari Khalilabad, E. (2025). Network Data Extraction using LLMs for Historical Documents:
+Kalantari, E. (2025). Network Data Extraction using LLMs for Historical Documents:
 A focus on Entity and Relationship Extraction. Master's Thesis, University of Luxembourg.
 ```
 
