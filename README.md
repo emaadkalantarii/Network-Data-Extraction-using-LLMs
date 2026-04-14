@@ -2,7 +2,7 @@
 ### Entity and Relationship Extraction from WWII-era Memoirs
 
 > **Master's Thesis — University of Luxembourg (C²DH), October 2025**  
-> Author: Emad Kalantari | Supervisor: Prof. Martin Theobald | Advisor: Ass. Prof. Marten During  
+> Author: Emad Kalantari Khalilabad | Supervisor: Prof. Martin Theobald | Advisor: Ass. Prof. Marten During  
 > *Findings are being prepared for publication in a peer-reviewed journal.*
 
 ---
@@ -286,7 +286,7 @@ The project was conducted over ~20 months at the [Luxembourg Centre for Contempo
 If you use or reference this work, please cite:
 
 ```
-Kalantari, E. (2025). Network Data Extraction using LLMs for Historical Documents:
+Kalantari Khalilabad, E. (2025). Network Data Extraction using LLMs for Historical Documents:
 A focus on Entity and Relationship Extraction. Master's Thesis, University of Luxembourg.
 ```
 
