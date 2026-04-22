@@ -266,7 +266,7 @@ Network-Data-Extraction-using-LLMs/
 
 ## Dataset Note
 
-The source memoir (*Memories from My Early Life in Germany 1926–1946* by Ralph Neuman) and the manually annotated ground-truth dataset (176 positive relationships, 60 entities) are **not included** in this repository due to copyright and privacy considerations. Please contact the [C²DH at the University of Luxembourg](https://www.c2dh.uni.lu/) for access inquiries.
+The source memoir (*Memories from My Early Life in Germany 1926–1946* by Ralph Neuman) and the manually annotated ground-truth dataset (176 positive relationships, 60 entities) are **not included** in this repository due to copyright and privacy considerations.
 
 ---
 
