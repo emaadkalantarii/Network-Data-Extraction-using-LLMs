@@ -1,25 +1,48 @@
-# Network Data Extraction using LLMs for Historical Documents
-### Entity and Relationship Extraction from WWII-era Memoirs
+# Network Data Extraction using LLMs
+### Entity and Relationship Extraction from Long-Form Unstructured Documents
 
-> **Master's Thesis — University of Luxembourg (C²DH), October 2025**  
-> Author: Emad Kalantari Khalilabad | Supervisor: Prof. Martin Theobald | Advisor: Ass. Prof. Marten During  
+> **Master's Thesis — University of Luxembourg (C²DH), October 2025**
+> Author: Emad Kalantari Khalilabad | Supervisor: Prof. Martin Theobald | Advisor: Ass. Prof. Marten During
 > *Findings are being prepared for publication in a peer-reviewed journal.*
+
+---
+
+## Tech Stack
+
+**Language:** Python
+
+**AI & LLM**
+`OpenAI API` · `GPT-4o` · `GPT-4.1` · `GPT-5` · `o3 Reasoning Model` · `Prompt Engineering`
+
+**NLP & Pipeline**
+`LangChain` · `Coreference Resolution` · `Named Entity Recognition (NER)` · `Relationship Extraction` · `Information Extraction` · `Overlapping Text Chunking` · `Context Window Management`
+
+**Data & Output**
+`JSON` · `Structured Metadata Output` · `Text File Checkpointing`
+
+**Python Libraries**
+`openai` · `langchain` · `ast` · `json` · `os` · `re` · `datetime`
+
+**Evaluation**
+`Precision` · `Recall` · `F1-Score` · `10-run Stability Testing` · `Ground-Truth Benchmarking`
 
 ---
 
 ## Overview
 
-This project investigates whether Large Language Models (LLMs) can reliably extract structured social network data — specifically entities and their relationships — from long-form historical narrative texts.
+This project investigates whether Large Language Models (LLMs) can reliably extract structured social network data — specifically entities and their relationships — from long-form unstructured narrative texts.
 
 The case study is the memoir *Memories from My Early Life in Germany 1926–1946* by Ralph Neuman, a first-person account of survival during WWII. The memoir contains dense networks of support relationships: people who provided shelter, food, false documents, medical care, and emotional support to those living underground.
 
-The core challenge is bridging **Digital History** and **Computer Science**: reconstructing historically meaningful survival networks in a way that is both computationally reliable and interpretively accurate.
+The core challenge is bridging **Digital Humanities** and **Computer Science**: reconstructing historically meaningful survival networks in a way that is both computationally reliable and interpretively accurate.
+
+While the case study uses a historical memoir, the pipeline is **domain-agnostic** — it can be applied to any long-form unstructured text corpus requiring structured relationship extraction, including legal documents, medical records, financial reports, or corporate archives, with minimal configuration changes.
 
 ---
 
 ## The Pipeline
 
-The framework in this repository is the **final, optimized version** that emerged after 43 experimental configurations. It implements a modular, end-to-end NLP pipeline:
+The framework in this repository is the **final, optimized version** that emerged after 43 engineered configurations. It implements a modular, end-to-end NLP pipeline:
 
 ```
 Raw Text
@@ -48,23 +71,23 @@ Both Stage 1 (Coreference Resolution) and Stage 2 (Relationship Extraction) supp
 
 ---
 
-## Research Background: How the Pipeline Evolved
+## Pipeline Design: How It Evolved
 
 The framework you see here is the result of a long iterative process. Understanding how it evolved helps clarify the design decisions embedded in the code.
 
 ### Extraction Strategy: One-step vs. Multi-step (NER + RE)
 
-Two fundamentally different extraction strategies were tested across the 43 experimental methods:
+Two fundamentally different extraction strategies were tested across the 43 engineered configurations:
 
-**Multi-step (NER + RE)** — used in earlier experiments. The text was first passed through Named Entity Recognition (NER) using five separate prompts, each targeting a different entity type. The resulting entities were consolidated into a list, which was then fed into a separate Relationship Extraction (RE) step. While this approach added structure, it proved fragile: errors in the NER stage (missed or irrelevant entities) propagated directly into the RE stage, resulting in both high false positives and high false negatives. This strategy was eventually abandoned.
+**Multi-step (NER + RE)** — used in earlier configurations. The text was first passed through Named Entity Recognition (NER) using five separate prompts, each targeting a different entity type. The resulting entities were consolidated into a list, which was then fed into a separate Relationship Extraction (RE) step. While this approach added structure, it proved fragile: errors in the NER stage (missed or irrelevant entities) propagated directly into the RE stage, resulting in both high false positives and high false negatives. This strategy was eventually abandoned.
 
-**One-step extraction** — adopted in later experiments and used in the final framework. Entities and relationships are identified together in a single API call per chunk. Once supported by proper preprocessing (chunking and coreference resolution) and well-designed prompts, this simpler approach outperformed the multi-step design in both precision and recall, and is significantly easier to maintain and extend.
+**One-step extraction** — adopted in later configurations and used in the final framework. Entities and relationships are identified together in a single API call per chunk. Once supported by proper preprocessing (chunking and coreference resolution) and well-designed prompts, this simpler approach outperformed the multi-step design in both precision and recall, and is significantly easier to maintain and extend.
 
 ---
 
 ### Coreference Resolution (CR): What It Is and Why It Matters
 
-Historical narratives rarely repeat full names. A memoir passage might say "He gave me the papers" or "The Fleischers let us stay" — leaving the actual individuals ambiguous or unnamed. Without resolving these references, an LLM will either miss relationships entirely (false negatives) or attribute actions to the wrong person (false positives).
+Long-form narratives rarely repeat full names. A passage might say "He gave me the papers" or "The Fleischers let us stay" — leaving the actual individuals ambiguous or unnamed. Without resolving these references, an LLM will either miss relationships entirely (false negatives) or attribute actions to the wrong person (false positives).
 
 Coreference Resolution (CR) was introduced as a dedicated preprocessing step before relationship extraction. Its role is to replace all ambiguous references in each text chunk with explicit entity names, so the extraction model works with clear, unambiguous text.
 
@@ -104,9 +127,9 @@ The extraction step (Stage 2) also uses the same two-prompt structure:
 
 **User prompt** — short and focused. It provides the resolved chunk text and asks the model to extract all help-related relationships from it according to the system rules. Keeping the user prompt minimal and consistent across all chunks was intentional — it separates the stable rulebook (system) from the variable content (user), making outputs more predictable.
 
-#### Prompt Engineering: An Iterative Research Process
+#### Prompt Engineering: An Iterative Optimization Process
 
-Prompts were a central research variable and went through three broad stages of development. These stages are not selectable parameters in the framework — they describe the research journey. The prompts embedded in the framework are the final, most refined version.
+Prompts were a central optimization variable and went through three broad stages of development. These stages are not selectable parameters in the framework — they describe the engineering journey. The prompts embedded in the framework are the final, most refined version.
 
 **Stage 1 — Simple prompts:** basic instructions with no schema, no definitions, and no constraints. Established a baseline but produced noisy, inconsistent outputs.
 
@@ -118,7 +141,7 @@ Prompts were a central research variable and went through three broad stages of 
 
 ## Key Results
 
-43 experimental configurations were tested across 8 phases, progressively adding preprocessing steps, refining the extraction strategy, and iterating on prompts and model selection. Performance was evaluated against a manually annotated ground-truth dataset of 176 positive relationships across 60 entities.
+43 system configurations were evaluated across 8 phases, progressively adding preprocessing steps, refining the extraction strategy, and iterating on prompts and model selection. Performance was measured against a labeled ground-truth dataset of 176 positive relationships across 60 entities.
 
 The best single-run configuration (Method 35) achieved:
 
@@ -126,11 +149,11 @@ The best single-run configuration (Method 35) achieved:
 |---|---|---|---|---|---|
 | o3 → o3 | 6000 / 600 | 1 | **0.906** | **0.785** | **0.841** |
 
-The chart below shows how Precision, Recall, and F1-score evolved across all 43 methods, demonstrating the cumulative effect of each design refinement:
+The chart below shows how Precision, Recall, and F1-score evolved across all 43 configurations, demonstrating the cumulative effect of each design refinement:
 
 ![Progression of Metrics Across Methods](assets/fig1_progression_metrics.jpg)
 
-*F1-score improved from ~0.37 (naïve single-pass baseline with no preprocessing) to 0.841 — a 250%+ improvement.*
+*F1-score improved from ~0.37 (initial single-pass baseline with no preprocessing) to 0.841 — a 250%+ improvement.*
 
 To verify reproducibility, the three top-performing configurations were each re-run 10 times under identical conditions:
 
@@ -218,6 +241,11 @@ CHUNK_OVERLAP = 600                  # Overlap between chunks
 CONTEXT_WINDOW = 1                   # Previous chunks used as CR context
 ```
 
+**Model parameter tuning** is also supported at the top of the script:
+- GPT models: `temperature`, `top_p`, `max_tokens`
+- o3 Reasoning model: `reasoning_effort` (`low` / `medium` / `high`)
+- GPT-5 models: `verbosity`, `reasoning_effort`, `max_output_tokens`
+
 **6. Run**
 ```bash
 python entity_relationship_extraction.py
@@ -229,7 +257,7 @@ The script is interactive — it will prompt you to review intermediate outputs 
 
 ## Configuration Options
 
-The following parameters were systematically tested during the research. The optimal values are implemented as defaults in the framework:
+The following parameters were systematically evaluated during development. The optimal values are implemented as defaults in the framework:
 
 | Parameter | Values tested | Optimal |
 |---|---|---|
@@ -252,7 +280,7 @@ Network-Data-Extraction-using-LLMs/
 ├── README.md                           # This file
 │
 └── assets/
-    ├── fig1_progression_metrics.jpg    # F1/Precision/Recall progression across all 43 methods
+    ├── fig1_progression_metrics.jpg    # F1/Precision/Recall progression across all 43 configurations
     └── fig4_stability_analysis.jpg     # 10-run stability results for top 3 configurations
 ```
 
@@ -272,12 +300,13 @@ The source memoir (*Memories from My Early Life in Germany 1926–1946* by Ralph
 
 ## Project Context
 
-This work sits at the intersection of:
-- **Natural Language Processing** — entity extraction, coreference resolution, information extraction
-- **Digital History** — computational reconstruction of WWII survival networks
-- **Prompt Engineering & LLM Evaluation** — systematic benchmarking of 43 configurations across 4 OpenAI models
+This project sits at the intersection of:
+- **LLM Engineering** — modular pipeline design, OpenAI API integration, configurable model selection across GPT-4o, GPT-4.1, GPT-5, and o3
+- **NLP & Information Extraction** — coreference resolution, named entity recognition, relationship extraction, structured JSON output
+- **Quantitative Model Evaluation** — benchmarking 43 configurations using precision, recall, and F1-score; 10-run statistical stability testing
+- **Digital Humanities** — computational reconstruction of WWII survival networks at the [Luxembourg Centre for Contemporary and Digital History (C²DH)](https://www.c2dh.uni.lu/)
 
-The project was conducted over ~20 months at the [Luxembourg Centre for Contemporary and Digital History (C²DH)](https://www.c2dh.uni.lu/), University of Luxembourg, in roles spanning student researcher, research intern, and master's thesis.
+The project was conducted over ~20 months at the University of Luxembourg, in roles spanning student researcher, research intern, and master's thesis.
 
 ---
 
